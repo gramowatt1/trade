@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Systematic trading Strategy Calculator</title>
+    <title>Systematic Strategy & Recovery Calculator</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -12,6 +12,9 @@
             --text-main: #f8fafc;
             --text-sub: #94a3b8;
             --border: #334155;
+            --success: #4ade80;
+            --warning: #facc15;
+            --danger: #f87171;
         }
 
         body {
@@ -25,7 +28,7 @@
         }
 
         .container {
-            max-width: 900px;
+            max-width: 950px;
             width: 100%;
         }
 
@@ -43,26 +46,37 @@
             margin-bottom: 20px;
         }
 
+        .grid-inputs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
         .form-group {
-            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
         }
 
         label {
-            display: block;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             color: var(--text-sub);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        select, input {
-            width: 100%;
-            padding: 12px;
+        input, select {
+            padding: 10px 12px;
             background: #0f172a;
             border: 1px solid var(--border);
             border-radius: 8px;
             color: #fff;
             font-size: 1rem;
-            box-sizing: border-box;
+            outline: none;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--accent);
         }
 
         .summary-grid {
@@ -82,16 +96,29 @@
         .summary-box h4 {
             margin: 0 0 5px 0;
             color: var(--text-sub);
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             text-transform: uppercase;
         }
 
         .summary-box p {
             margin: 0;
-            font-size: 1.2rem;
+            font-size: 1.15rem;
             font-weight: bold;
             color: var(--accent);
         }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .status-good { background: rgba(74, 222, 128, 0.2); color: var(--success); }
+        .status-warn { background: rgba(250, 204, 21, 0.2); color: var(--warning); }
+        .status-bad { background: rgba(248, 113, 113, 0.2); color: var(--danger); }
 
         table {
             width: 100%;
@@ -100,9 +127,10 @@
         }
 
         th, td {
-            padding: 12px;
+            padding: 10px 12px;
             text-align: left;
             border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
         }
 
         th {
@@ -114,148 +142,157 @@
             background: #283548;
         }
 
-        .highlight {
-            font-weight: bold;
-            color: #4ade80;
+        .table-container {
+            max-height: 450px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Systematic trading Strategy Calculator</h1>
+    <h1>Systematic Strategy Calculator</h1>
 
     <div class="card">
-        <div class="form-group">
-            <label for="milestoneSelect">Select Milestone Level:</label>
-            <select id="milestoneSelect" onchange="calculateStrategy()">
-                <!-- Options populated dynamically -->
-            </select>
+        <h3>Strategy Parameters</h3>
+        <div class="grid-inputs">
+            <div class="form-group">
+                <label for="startCap">Starting Bankroll (₦)</label>
+                <input type="number" id="startCap" value="5000" oninput="runCalculator()">
+            </div>
+            <div class="form-group">
+                <label for="targetCap">Target Capital (₦)</label>
+                <input type="number" id="targetCap" value="10000" oninput="runCalculator()">
+            </div>
+            <div class="form-group">
+                <label for="totalAttempts">Max Total Attempts</label>
+                <input type="number" id="totalAttempts" value="50" oninput="runCalculator()">
+            </div>
+            <div class="form-group">
+                <label for="targetWins">Wins Required</label>
+                <input type="number" id="targetWins" value="4" oninput="runCalculator()">
+            </div>
+            <div class="form-group">
+                <label for="oddsSelect">Fixed Target Odds</label>
+                <select id="oddsSelect" onchange="runCalculator()">
+                    <option value="10">10.00 Odds</option>
+                    <option value="25" selected>25.00 Odds</option>
+                    <option value="50">50.00 Odds</option>
+                    <option value="100">100.00 Odds</option>
+                    <option value="1000">1000.00 Odds</option>
+                </select>
+            </div>
         </div>
 
         <div class="summary-grid">
             <div class="summary-box">
-                <h4>Starting Bankroll</h4>
-                <p id="dispStart">₦0</p>
+                <h4>Profit Target</h4>
+                <p id="dispProfit">₦0</p>
             </div>
             <div class="summary-box">
-                <h4>Target Capital</h4>
-                <p id="dispTarget">₦0</p>
+                <h4>Profit Per Win Stage</h4>
+                <p id="dispStageProfit">₦0</p>
             </div>
             <div class="summary-box">
-                <h4>Fixed Stake (2%)</h4>
-                <p id="dispStake">₦0</p>
+                <h4>Base Stake (Bet #1)</h4>
+                <p id="dispBaseStake">₦0</p>
             </div>
             <div class="summary-box">
-                <h4>50% Stop-Loss (25 Bets)</h4>
-                <p id="dispStopLoss">₦0</p>
+                <h4>Odds Feasibility</h4>
+                <div id="dispFeasibility">--</div>
             </div>
         </div>
     </div>
 
     <div class="card">
-        <h3>Bet Progression Table (Bets 1 to 25)</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Bet #</th>
-                    <th>Fixed Stake</th>
-                    <th>Required Odds</th>
-                    <th>Gross Return on Win</th>
-                    <th>Cumulative Losses Before Bet</th>
-                </tr>
-            </thead>
-            <tbody id="progressionTable">
-                <!-- Dynamically Generated -->
-            </tbody>
-        </table>
+        <h3>Single-Stage Recovery Ledger (Bet 1 to <span id="dispMaxBets">50</span>)</h3>
+        <p style="color: var(--text-sub); font-size: 0.85rem;">
+            This table shows how your stake escalates gently per loss within a stage to guarantee that landing <strong>1 win</strong> recovers all accumulated losses in that stage and secures 1 stage target profit.
+        </p>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Attempt #</th>
+                        <th>Stage Losses Before Bet</th>
+                        <th>Required Stake</th>
+                        <th>Gross Return on Win</th>
+                        <th>Net Stage Profit</th>
+                    </tr>
+                </thead>
+                <tbody id="ledgerTable">
+                    <!-- Dynamically populated -->
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
 <script>
-    const milestones = [
-        { level: 1, start: 5000, target: 10000 },
-        { level: 2, start: 10000, target: 20000 },
-        { level: 3, start: 20000, target: 50000 },
-        { level: 4, start: 50000, target: 100000 },
-        { level: 5, start: 100000, target: 200000 },
-        { level: 6, start: 200000, target: 500000 },
-        { level: 7, start: 500000, target: 1000000 },
-        { level: 8, start: 1000000, target: 1500000 },
-        { level: 9, start: 1500000, target: 2000000 },
-        { level: 10, start: 2000000, target: 3500000 },
-        { level: 11, start: 3500000, target: 5000000 },
-        { level: 12, start: 5000000, target: 8000000 },
-        { level: 13, start: 8000000, target: 10000000 },
-        { level: 14, start: 10000000, target: 15000000 },
-        { level: 15, start: 15000000, target: 20000000 },
-        { level: 16, start: 20000000, target: 30000000 },
-        { level: 17, start: 30000000, target: 50000000 },
-        { level: 18, start: 50000000, target: 80000000 },
-        { level: 19, start: 80000000, target: 100000000 },
-        { level: 20, start: 100000000, target: 120000000 },
-        { level: 21, start: 120000000, target: 150000000 },
-        { level: 22, start: 150000000, target: 200000000 },
-        { level: 23, start: 200000000, target: 500000000 },
-        { level: 24, start: 500000000, target: 1000000000 },
-        { level: 25, start: 1000000000, target: 1500000000 },
-        { level: 26, start: 1500000000, target: 2000000000 },
-        { level: 27, start: 2000000000, target: 5000000000 }
-    ];
-
-    function formatNaira(amount) {
-        return '₦' + amount.toLocaleString('en-NG');
+    function formatNaira(val) {
+        return '₦' + Number(val.toFixed(2)).toLocaleString('en-NG');
     }
 
-    function init() {
-        const select = document.getElementById('milestoneSelect');
-        milestones.forEach(m => {
-            let option = document.createElement('option');
-            option.value = m.level;
-            option.text = `Level ${m.level}: ${formatNaira(m.start)} → ${formatNaira(m.target)}`;
-            select.appendChild(option);
-        });
-        calculateStrategy();
-    }
+    function runCalculator() {
+        const startCap = parseFloat(document.getElementById('startCap').value) || 0;
+        const targetCap = parseFloat(document.getElementById('targetCap').value) || 0;
+        const totalAttempts = parseInt(document.getElementById('totalAttempts').value) || 1;
+        const targetWins = parseInt(document.getElementById('targetWins').value) || 1;
+        const odds = parseFloat(document.getElementById('oddsSelect').value) || 1.01;
 
-    function calculateStrategy() {
-        const levelId = parseInt(document.getElementById('milestoneSelect').value);
-        const selected = milestones.find(m => m.level === levelId);
+        document.getElementById('dispMaxBets').innerText = totalAttempts;
 
-        const startCap = selected.start;
-        const targetCap = selected.target;
-        const profitNeeded = targetCap - startCap;
-        const stake = startCap * 0.02; // 2% fixed stake
-        const stopLoss = startCap * 0.50; // 50% max drawdown
+        const totalProfitNeeded = targetCap - startCap;
+        const profitPerWin = totalProfitNeeded / targetWins;
+        const netMultiplier = odds - 1;
 
-        document.getElementById('dispStart').innerText = formatNaira(startCap);
-        document.getElementById('dispTarget').innerText = formatNaira(targetCap);
-        document.getElementById('dispStake').innerText = formatNaira(stake);
-        document.getElementById('dispStopLoss').innerText = formatNaira(stopLoss);
+        const baseStake = profitPerWin / netMultiplier;
 
-        const tbody = document.getElementById('progressionTable');
+        document.getElementById('dispProfit').innerText = formatNaira(totalProfitNeeded);
+        document.getElementById('dispStageProfit').innerText = formatNaira(profitPerWin);
+        document.getElementById('dispBaseStake').innerText = formatNaira(baseStake);
+
+        // Odds Feasibility Evaluation
+        const minBreakEvenOdds = totalAttempts / targetWins;
+        const feasibilityDiv = document.getElementById('dispFeasibility');
+
+        if (odds < minBreakEvenOdds) {
+            feasibilityDiv.innerHTML = `<span class="status-badge status-bad">Too Low (${odds}x < ${minBreakEvenOdds.toFixed(1)}x min)</span>`;
+        } else if (odds > 100) {
+            feasibilityDiv.innerHTML = `<span class="status-badge status-warn">Extreme Variance (${odds}x)</span>`;
+        } else {
+            feasibilityDiv.innerHTML = `<span class="status-badge status-good">Reasonable Target</span>`;
+        }
+
+        // Build Recovery Ledger
+        const tbody = document.getElementById('ledgerTable');
         tbody.innerHTML = '';
 
-        const baseRatio = profitNeeded / stake;
+        let accumulatedLosses = 0;
 
-        for (let betNum = 1; betNum <= 25; betNum++) {
-            const requiredOdds = (baseRatio + betNum).toFixed(2);
-            const cumulativeLosses = (betNum - 1) * stake;
-            const grossReturn = stake * requiredOdds;
+        for (let bet = 1; bet <= totalAttempts; bet++) {
+            const requiredStake = (profitPerWin + accumulatedLosses) / netMultiplier;
+            const grossReturn = requiredStake * odds;
+            const netProfit = grossReturn - (accumulatedLosses + requiredStake);
 
             let row = document.createElement('tr');
             row.innerHTML = `
-                <td>Bet ${betNum}</td>
-                <td>${formatNaira(stake)}</td>
-                <td class="highlight">${requiredOdds}</td>
+                <td>Attempt ${bet}</td>
+                <td>${formatNaira(accumulatedLosses)}</td>
+                <td style="font-weight: bold; color: var(--accent);">${formatNaira(requiredStake)}</td>
                 <td>${formatNaira(grossReturn)}</td>
-                <td>${formatNaira(cumulativeLosses)}</td>
+                <td style="color: var(--success);">${formatNaira(netProfit)}</td>
             `;
             tbody.appendChild(row);
+
+            // Accumulate loss for the next attempt step in the stage
+            accumulatedLosses += requiredStake;
         }
     }
 
-    window.onload = init;
+    window.onload = runCalculator;
 </script>
 
 </body>
