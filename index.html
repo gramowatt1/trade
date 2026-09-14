@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Systematic Betting Strategy Calculator</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent: #38bdf8;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --border: #334155;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--accent);
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-sub);
+            font-size: 0.9rem;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 12px;
+            background: #0f172a;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .summary-box {
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .summary-box h4 {
+            margin: 0 0 5px 0;
+            color: var(--text-sub);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        .summary-box p {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: #0f172a;
+            color: var(--accent);
+        }
+
+        tr:hover {
+            background: #283548;
+        }
+
+        .highlight {
+            font-weight: bold;
+            color: #4ade80;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Systematic Betting Strategy Calculator</h1>
+
+    <div class="card">
+        <div class="form-group">
+            <label for="milestoneSelect">Select Milestone Level:</label>
+            <select id="milestoneSelect" onchange="calculateStrategy()">
+                <!-- Options populated dynamically -->
+            </select>
+        </div>
+
+        <div class="summary-grid">
+            <div class="summary-box">
+                <h4>Starting Bankroll</h4>
+                <p id="dispStart">₦0</p>
+            </div>
+            <div class="summary-box">
+                <h4>Target Capital</h4>
+                <p id="dispTarget">₦0</p>
+            </div>
+            <div class="summary-box">
+                <h4>Fixed Stake (2%)</h4>
+                <p id="dispStake">₦0</p>
+            </div>
+            <div class="summary-box">
+                <h4>50% Stop-Loss (25 Bets)</h4>
+                <p id="dispStopLoss">₦0</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Bet Progression Table (Bets 1 to 25)</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Bet #</th>
+                    <th>Fixed Stake</th>
+                    <th>Required Odds</th>
+                    <th>Gross Return on Win</th>
+                    <th>Cumulative Losses Before Bet</th>
+                </tr>
+            </thead>
+            <tbody id="progressionTable">
+                <!-- Dynamically Generated -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const milestones = [
+        { level: 1, start: 5000, target: 10000 },
+        { level: 2, start: 10000, target: 20000 },
+        { level: 3, start: 20000, target: 50000 },
+        { level: 4, start: 50000, target: 100000 },
+        { level: 5, start: 100000, target: 200000 },
+        { level: 6, start: 200000, target: 500000 },
+        { level: 7, start: 500000, target: 1000000 },
+        { level: 8, start: 1000000, target: 1500000 },
+        { level: 9, start: 1500000, target: 2000000 },
+        { level: 10, start: 2000000, target: 3500000 },
+        { level: 11, start: 3500000, target: 5000000 },
+        { level: 12, start: 5000000, target: 8000000 },
+        { level: 13, start: 8000000, target: 10000000 },
+        { level: 14, start: 10000000, target: 15000000 },
+        { level: 15, start: 15000000, target: 20000000 },
+        { level: 16, start: 20000000, target: 30000000 },
+        { level: 17, start: 30000000, target: 50000000 },
+        { level: 18, start: 50000000, target: 80000000 },
+        { level: 19, start: 80000000, target: 100000000 },
+        { level: 20, start: 100000000, target: 120000000 },
+        { level: 21, start: 120000000, target: 150000000 },
+        { level: 22, start: 150000000, target: 200000000 },
+        { level: 23, start: 200000000, target: 500000000 },
+        { level: 24, start: 500000000, target: 1000000000 },
+        { level: 25, start: 1000000000, target: 1500000000 },
+        { level: 26, start: 1500000000, target: 2000000000 },
+        { level: 27, start: 2000000000, target: 5000000000 }
+    ];
+
+    function formatNaira(amount) {
+        return '₦' + amount.toLocaleString('en-NG');
+    }
+
+    function init() {
+        const select = document.getElementById('milestoneSelect');
+        milestones.forEach(m => {
+            let option = document.createElement('option');
+            option.value = m.level;
+            option.text = `Level ${m.level}: ${formatNaira(m.start)} → ${formatNaira(m.target)}`;
+            select.appendChild(option);
+        });
+        calculateStrategy();
+    }
+
+    function calculateStrategy() {
+        const levelId = parseInt(document.getElementById('milestoneSelect').value);
+        const selected = milestones.find(m => m.level === levelId);
+
+        const startCap = selected.start;
+        const targetCap = selected.target;
+        const profitNeeded = targetCap - startCap;
+        const stake = startCap * 0.02; // 2% fixed stake
+        const stopLoss = startCap * 0.50; // 50% max drawdown
+
+        document.getElementById('dispStart').innerText = formatNaira(startCap);
+        document.getElementById('dispTarget').innerText = formatNaira(targetCap);
+        document.getElementById('dispStake').innerText = formatNaira(stake);
+        document.getElementById('dispStopLoss').innerText = formatNaira(stopLoss);
+
+        const tbody = document.getElementById('progressionTable');
+        tbody.innerHTML = '';
+
+        const baseRatio = profitNeeded / stake;
+
+        for (let betNum = 1; betNum <= 25; betNum++) {
+            const requiredOdds = (baseRatio + betNum).toFixed(2);
+            const cumulativeLosses = (betNum - 1) * stake;
+            const grossReturn = stake * requiredOdds;
+
+            let row = document.createElement('tr');
+            row.innerHTML = `
+                <td>Bet ${betNum}</td>
+                <td>${formatNaira(stake)}</td>
+                <td class="highlight">${requiredOdds}</td>
+                <td>${formatNaira(grossReturn)}</td>
+                <td>${formatNaira(cumulativeLosses)}</td>
+            `;
+            tbody.appendChild(row);
+        }
+    }
+
+    window.onload = init;
+</script>
+
+</body>
+</html>
