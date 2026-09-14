@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Systematic Strategy & Recovery Calculator</title>
+    <title>Systematic Strategy Session Manager</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -15,6 +15,7 @@
             --success: #4ade80;
             --warning: #facc15;
             --danger: #f87171;
+            --money: #4ade80;
         }
 
         * {
@@ -30,10 +31,11 @@
             padding: 12px;
             display: flex;
             justify-content: center;
+            padding-bottom: 50px; /* Space for footer if needed */
         }
 
         .container {
-            max-width: 950px;
+            max-width: 800px;
             width: 100%;
         }
 
@@ -44,36 +46,30 @@
             font-size: 1.5rem;
         }
 
+        h2, h3 { color: var(--accent); margin-top: 0; }
+
         .card {
             background: var(--card-bg);
             border: 1px solid var(--border);
             border-radius: 12px;
             padding: 16px;
             margin-bottom: 16px;
+            position: relative;
         }
 
-        .card h3 {
-            margin-top: 0;
-            font-size: 1.1rem;
-            color: var(--accent);
-        }
-
+        /* Input Grid Styles */
         .grid-inputs {
             display: grid;
             grid-template-columns: 1fr;
             gap: 12px;
+            margin-bottom: 15px;
         }
 
         @media (min-width: 600px) {
-            .grid-inputs {
-                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            }
+            .grid-inputs { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
         }
 
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
+        .form-group { display: flex; flex-direction: column; }
 
         label {
             margin-bottom: 6px;
@@ -93,251 +89,747 @@
             font-size: 1rem;
             outline: none;
             width: 100%;
-            -webkit-appearance: none;
         }
 
-        select {
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%38bdf8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 12px center;
-            background-size: 16px;
-            padding-right: 36px;
+        input:focus, select:focus { border-color: var(--accent); }
+
+        button {
+            cursor: pointer;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: opacity 0.2s;
+            font-family: inherit;
         }
 
-        input:focus, select:focus {
+        button:active { opacity: 0.7; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-primary {
+            background-color: var(--accent);
+            color: #0f172a;
+            border: none;
+            padding: 12px 20px;
+            width: 100%;
+            font-size: 1rem;
+        }
+
+        .btn-danger {
+            background-color: transparent;
+            color: var(--danger);
+            border: 1px solid var(--danger);
+            padding: 8px 15px;
+            font-size: 0.8rem;
+        }
+
+        /* Navigation Toggles */
+        .view-toggles {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            background: var(--card-bg);
+            color: var(--text-sub);
+            border: 1px solid var(--border);
+            padding: 10px;
+            text-align: center;
+        }
+
+        .toggle-btn.active {
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--accent);
             border-color: var(--accent);
         }
 
-        .summary-grid {
+        /* Live Dashboard Styles */
+        .stat-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 10px;
-            margin-top: 16px;
+            margin-bottom: 15px;
         }
 
-        @media (max-width: 480px) {
-            .summary-grid {
-                grid-template-columns: 1fr;
-            }
-        }
+        @media (min-width: 480px) { .stat-grid { grid-template-columns: repeat(4, 1fr); } }
 
-        .summary-box {
-            background: #0f172a;
-            padding: 12px;
+        .stat-box {
+            background: rgba(0,0,0,0.2);
+            padding: 10px;
             border-radius: 8px;
             border: 1px solid var(--border);
+            text-align: center;
         }
 
-        .summary-box h4 {
-            margin: 0 0 4px 0;
+        .stat-box label { font-size: 0.7rem; margin-bottom: 2px; justify-content: center;}
+        .stat-box .value { font-size: 1.1rem; font-weight: bold; color: var(--text-main); }
+        .stat-box .value.money { color: var(--money); }
+
+        /* Active Bet Section */
+        .active-bet-container {
+            text-align: center;
+            padding: 20px;
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            background: rgba(0,0,0,0.2);
+        }
+
+        .active-bet-container.win { border-color: var(--success); background: rgba(74, 222, 128, 0.05);}
+        .active-bet-container.loss { border-color: var(--danger); background: rgba(248, 113, 113, 0.05);}
+
+        .bet-label { color: var(--text-sub); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;}
+        .bet-stake { color: var(--accent); font-size: 2.5rem; font-weight: 800; margin: 10px 0; }
+        .bet-target { color: var(--success); font-size: 1rem; margin-bottom: 20px;}
+
+        .action-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .btn-action {
+            flex: 1;
+            padding: 15px;
+            font-size: 1.1rem;
+            border: none;
+            color: #0f172a;
+        }
+
+        .btn-won { background-color: var(--success); }
+        .btn-lost { background-color: var(--danger); color: white; }
+
+        /* History Styles */
+        .history-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .filter-btn {
+            background: transparent;
             color: var(--text-sub);
-            font-size: 0.75rem;
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+
+        .filter-btn.active {
+            background: var(--border);
+            color: var(--text-main);
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 600px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .history-item {
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .history-item.item-win { border-left: 4px solid var(--success); }
+        .history-item.item-loss { border-left: 4px solid var(--danger); }
+
+        .hist-meta { display: flex; flex-direction: column; }
+        .hist-nb { font-weight: bold; color: var(--text-sub); font-size: 0.8rem;}
+        .hist-time { font-size: 0.7rem; color: #64748b; }
+        
+        .hist-stake { font-weight: bold; font-size: 1rem; text-align: right;}
+        .item-win .hist-stake { color: var(--success); }
+        .item-loss .hist-stake { color: var(--danger); }
+
+        .hist-profit { font-size: 0.8rem; color: var(--text-sub); text-align: right;}
+
+        .badge {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: bold;
             text-transform: uppercase;
         }
+        .badge-win { background: rgba(74, 222, 128, 0.2); color: var(--success); }
+        .badge-loss { background: rgba(248, 113, 113, 0.2); color: var(--danger); }
 
-        .summary-box p {
-            margin: 0;
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: var(--accent);
-            word-break: break-word;
+        .empty-state {
+            text-align: center;
+            color: var(--text-sub);
+            padding: 40px 0;
+            font-style: italic;
         }
 
-        .status-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            margin-top: 2px;
-        }
+        /* Utilities */
+        .hidden { display: none !important; }
+        .money-plus { color: var(--success); }
+        .money-minus { color: var(--danger); }
 
-        .status-good { background: rgba(74, 222, 128, 0.2); color: var(--success); }
-        .status-warn { background: rgba(250, 204, 21, 0.2); color: var(--warning); }
-        .status-bad { background: rgba(248, 113, 113, 0.2); color: var(--danger); }
-
-        .table-container {
-            max-height: 400px;
-            overflow-y: auto;
-            overflow-x: auto;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        table {
-            width: 100%;
-            min-width: 520px;
-            border-collapse: collapse;
-        }
-
-        th, td {
-            padding: 10px 12px;
-            text-align: left;
-            border-bottom: 1px solid var(--border);
-            font-size: 0.85rem;
-            white-space: nowrap;
-        }
-
-        th {
-            background: #0f172a;
-            color: var(--accent);
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        tr:nth-child(even) {
-            background-color: rgba(255, 255, 255, 0.02);
-        }
-
-        tr:hover {
-            background: #283548;
-        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Systematic Strategy Calculator</h1>
+    <h1>Systematic Session Manager</h1>
 
-    <div class="card">
-        <h3>Strategy Parameters</h3>
+    <!-- 1. SETUP SCREEN -->
+    <div id="setup-container" class="card">
+        <h3>Configuration & Strategy Setup</h3>
+        <p style="color: var(--text-sub); font-size: 0.9rem; margin-top: -10px; margin-bottom: 20px;">
+            Define parameters to calculate recovery stages. Note: Recovery Multiplier (Odds - 1) must be > 0.
+        </p>
         <div class="grid-inputs">
             <div class="form-group">
-                <label for="startCap">Starting Bankroll (₦)</label>
-                <input type="number" id="startCap" value="5000" inputmode="decimal" oninput="runCalculator()">
+                <label>Starting Bankroll (₦)</label>
+                <input type="number" id="startCap" value="10000" inputmode="decimal">
             </div>
             <div class="form-group">
-                <label for="targetCap">Target Capital (₦)</label>
-                <input type="number" id="targetCap" value="10000" inputmode="decimal" oninput="runCalculator()">
+                <label>Target Capital (₦)</label>
+                <input type="number" id="targetCap" value="20000" inputmode="decimal">
             </div>
             <div class="form-group">
-                <label for="totalAttempts">Max Total Attempts</label>
-                <input type="number" id="totalAttempts" value="50" inputmode="numeric" oninput="runCalculator()">
+                <label>Wins Required to Close</label>
+                <input type="number" id="targetWins" value="1" inputmode="numeric">
             </div>
             <div class="form-group">
-                <label for="targetWins">Wins Required</label>
-                <input type="number" id="targetWins" value="4" inputmode="numeric" oninput="runCalculator()">
+                <label>Max Attempts Allowance</label>
+                <input type="number" id="totalAttempts" value="10" inputmode="numeric">
             </div>
             <div class="form-group">
-                <label for="oddsSelect">Fixed Target Odds</label>
-                <select id="oddsSelect" onchange="runCalculator()">
-                    <option value="10">10.00 Odds</option>
-                    <option value="25" selected>25.00 Odds</option>
-                    <option value="50">50.00 Odds</option>
-                    <option value="100">100.00 Odds</option>
-                    <option value="1000">1000.00 Odds</option>
-                </select>
+                <label>Fixed Decimal Odds</label>
+                <input type="number" id="oddsInput" value="2.0" step="0.01" inputmode="decimal">
             </div>
         </div>
-
-        <div class="summary-grid">
-            <div class="summary-box">
-                <h4>Profit Target</h4>
-                <p id="dispProfit">₦0</p>
-            </div>
-            <div class="summary-box">
-                <h4>Profit / Win Stage</h4>
-                <p id="dispStageProfit">₦0</p>
-            </div>
-            <div class="summary-box">
-                <h4>Base Stake (Bet #1)</h4>
-                <p id="dispBaseStake">₦0</p>
-            </div>
-            <div class="summary-box">
-                <h4>Odds Feasibility</h4>
-                <div id="dispFeasibility">--</div>
-            </div>
-        </div>
+        <button class="btn-primary" onclick="startSession()">Start Active Session</button>
     </div>
 
-    <div class="card">
-        <h3>Recovery Ledger (Bet 1 to <span id="dispMaxBets">50</span>)</h3>
-        <p style="color: var(--text-sub); font-size: 0.8rem; margin-top: -4px;">
-            Scroll table horizontally if needed. Land 1 win to clear all stage losses and capture profit target.
-        </p>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Attempt</th>
-                        <th>Stage Losses</th>
-                        <th>Required Stake</th>
-                        <th>Gross Return</th>
-                        <th>Net Stage Profit</th>
-                    </tr>
-                </thead>
-                <tbody id="ledgerTable">
-                    <!-- Dynamically populated -->
-                </tbody>
-            </table>
+    <!-- 2. ACTIVE SESSION SCREEN -->
+    <div id="session-container" class="hidden">
+        
+        <div class="card" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; border-color: var(--accent);">
+            <h3 style="margin:0; font-size: 1rem;">ACTIVE SESSION</h3>
+            <button class="btn-danger" onclick="endSessionConfirm()">Close Session</button>
         </div>
+
+        <!-- Toggles -->
+        <div class="view-toggles">
+            <button id="toggle-active" class="toggle-btn active" onclick="switchView('active')">Current Bet</button>
+            <button id="toggle-history" class="toggle-btn" onclick="switchView('history')">History / Summary</button>
+        </div>
+
+        <!-- Dashboard Stats (Always visible in session) -->
+        <div class="card">
+            <div class="stat-grid">
+                <div class="stat-box">
+                    <label>Current Bankroll</label>
+                    <div id="stat-bankroll" class="value money">₦0</div>
+                </div>
+                <div class="stat-box">
+                    <label>Net Profit</label>
+                    <div id="stat-profit" class="value">₦0</div>
+                </div>
+                <div class="stat-box">
+                    <label>Wins Needed</label>
+                    <div id="stat-wins" class="value">0 / 0</div>
+                </div>
+                <div class="stat-box">
+                    <label>Attempt</label>
+                    <div id="stat-attempt" class="value">0 / 0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- A. ACTIVE BET VIEW -->
+        <div id="view-active" class="card">
+            <div id="active-bet-zone" class="active-bet-container">
+                <div class="bet-label">Place Bet <span id="current-attempt-nb">#1</span></div>
+                <div id="current-stake" class="bet-stake">₦0.00</div>
+                <div id="current-profit-target" class="bet-target">Next Win Adds: ₦0.00</div>
+                
+                <div style="margin-bottom: 15px; color: var(--text-sub); font-size: 0.8rem;">Declare Outcome to reveal next bet:</div>
+                
+                <div class="action-group">
+                    <button class="btn-action btn-lost" onclick="declareOutcome('loss')">LOST</button>
+                    <button class="btn-action btn-won" onclick="processWin()">WON</button>
+                </div>
+            </div>
+
+            <!-- Session End States -->
+            <div id="session-completed-zone" class="active-bet-container win hidden">
+                <div style="font-size: 3rem; margin-bottom: 10px;">🎉</div>
+                <div class="bet-stake" style="color: var(--success); font-size: 1.8rem;">TARGET ACHIEVED</div>
+                <p id="comp-final-profit" style="color: var(--text-main);"></p>
+                <button class="btn-primary" style="background-color: var(--success); max-width: 200px; margin-top: 15px;" onclick="resetRound()">Start New Round</button>
+            </div>
+
+            <div id="session-failed-zone" class="active-bet-container loss hidden">
+                <div style="font-size: 3rem; margin-bottom: 10px;">🛑</div>
+                <div class="bet-stake" style="color: var(--danger); font-size: 1.8rem;">BUST / ATTEMPTS EXHAUSTED</div>
+                <p style="color: var(--text-main);">Strategy parameters failed to recover within limits.</p>
+                <button class="btn-primary" style="background-color: var(--danger); color: white; max-width: 200px; margin-top: 15px;" onclick="resetRound()">Reset & Reconfigure</button>
+            </div>
+        </div>
+
+        <!-- B. HISTORY / SUMMARY VIEW -->
+        <div id="view-history" class="card hidden">
+            <h3>Session Logs</h3>
+            
+            <div class="history-controls">
+                <button class="filter-btn active" onclick="filterHistory('all', this)">All (<span id="count-all">0</span>)</button>
+                <button class="filter-btnwin" onclick="filterHistory('win', this)" style="color: var(--success);">Wins (<span id="count-wins">0</span>)</button>
+                <button class="filter-btn loss" onclick="filterHistory('loss', this)" style="color: var(--danger);">Losses (<span id="count-losses">0</span>)</button>
+                <button class="filter-btn" onclick="clearHistoryConfirm()" style="margin-left: auto; border-color: #475569; color: #94a3b8;">Clear Logs</button>
+            </div>
+
+            <div id="history-list" class="history-list">
+                <!-- Items injected here -->
+                <div class="empty-state">No bets placed yet this session.</div>
+            </div>
+        </div>
+
     </div>
 </div>
 
 <script>
+    // --- STORAGE KEYS ---
+    const STORAGE_KEY = 'betting_session_state';
+
+    // --- APPLICATION STATE ---
+    let session = null;
+
+    // --- DOM ELEMENTS ---
+    const ui = {
+        setup: document.getElementById('setup-container'),
+        session: document.getElementById('session-container'),
+        // Views
+        vActive: document.getElementById('view-active'),
+        vHistory: document.getElementById('view-history'),
+        // Toggles
+        tActive: document.getElementById('toggle-active'),
+        tHistory: document.getElementById('toggle-history'),
+        // Dashboard
+        sBankroll: document.getElementById('stat-bankroll'),
+        sProfit: document.getElementById('stat-profit'),
+        sWins: document.getElementById('stat-wins'),
+        sAttempt: document.getElementById('stat-attempt'),
+        // Betting Zone
+        betZone: document.getElementById('active-bet-zone'),
+        attNb: document.getElementById('current-attempt-nb'),
+        stake: document.getElementById('current-stake'),
+        winTarget: document.getElementById('current-profit-target'),
+        // End States
+        endWinZone: document.getElementById('session-completed-zone'),
+        endWinMsg: document.getElementById('comp-final-profit'),
+        endLossZone: document.getElementById('session-failed-zone'),
+        // History
+        histList: document.getElementById('history-list'),
+        cAll: document.getElementById('count-all'),
+        cWins: document.getElementById('count-wins'),
+        cLosses: document.getElementById('count-losses')
+    };
+
+    // --- CORE FUNCTIONS ---
+
     function formatNaira(val) {
-        return '₦' + Number(val.toFixed(2)).toLocaleString('en-NG');
+        // Handle potential floating point errors for display
+        const normalized = Math.max(0, val);
+        return '₦' + Number(normalized.toFixed(2)).toLocaleString('en-NG');
     }
 
-    function runCalculator() {
-        const startCap = parseFloat(document.getElementById('startCap').value) || 0;
-        const targetCap = parseFloat(document.getElementById('targetCap').value) || 0;
-        const totalAttempts = parseInt(document.getElementById('totalAttempts').value) || 1;
-        const targetWins = parseInt(document.getElementById('targetWins').value) || 1;
-        const odds = parseFloat(document.getElementById('oddsSelect').value) || 1.01;
+    function formatDateTime() {
+        const now = new Date();
+        return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
 
-        document.getElementById('dispMaxBets').innerText = totalAttempts;
-
-        const totalProfitNeeded = targetCap - startCap;
-        const profitPerWin = totalProfitNeeded / targetWins;
-        const netMultiplier = odds - 1;
-
-        const baseStake = profitPerWin / netMultiplier;
-
-        document.getElementById('dispProfit').innerText = formatNaira(totalProfitNeeded);
-        document.getElementById('dispStageProfit').innerText = formatNaira(profitPerWin);
-        document.getElementById('dispBaseStake').innerText = formatNaira(baseStake);
-
-        // Odds Feasibility Evaluation
-        const minBreakEvenOdds = totalAttempts / targetWins;
-        const feasibilityDiv = document.getElementById('dispFeasibility');
-
-        if (odds < minBreakEvenOdds) {
-            feasibilityDiv.innerHTML = `<span class="status-badge status-bad">Too Low (${odds}x < ${minBreakEvenOdds.toFixed(1)}x)</span>`;
-        } else if (odds > 100) {
-            feasibilityDiv.innerHTML = `<span class="status-badge status-warn">High Variance (${odds}x)</span>`;
+    // Save state to localStorage
+    function saveState() {
+        if (session) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
         } else {
-            feasibilityDiv.innerHTML = `<span class="status-badge status-good">Reasonable Target</span>`;
-        }
-
-        // Build Recovery Ledger
-        const tbody = document.getElementById('ledgerTable');
-        tbody.innerHTML = '';
-
-        let accumulatedLosses = 0;
-
-        for (let bet = 1; bet <= totalAttempts; bet++) {
-            const requiredStake = (profitPerWin + accumulatedLosses) / netMultiplier;
-            const grossReturn = requiredStake * odds;
-            const netProfit = grossReturn - (accumulatedLosses + requiredStake);
-
-            let row = document.createElement('tr');
-            row.innerHTML = `
-                <td>Attempt ${bet}</td>
-                <td>${formatNaira(accumulatedLosses)}</td>
-                <td style="font-weight: bold; color: var(--accent);">${formatNaira(requiredStake)}</td>
-                <td>${formatNaira(grossReturn)}</td>
-                <td style="color: var(--success);">${formatNaira(netProfit)}</td>
-            `;
-            tbody.appendChild(row);
-
-            accumulatedLosses += requiredStake;
+            localStorage.removeItem(STORAGE_KEY);
         }
     }
 
-    window.onload = runCalculator;
+    // Load state on startup
+    function loadState() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            try {
+                session = JSON.parse(saved);
+                renderSession();
+            } catch (e) {
+                console.error("Failed to parse saved state", e);
+                localStorage.removeItem(STORAGE_KEY);
+                showSetup();
+            }
+        } else {
+            showSetup();
+        }
+    }
+
+    function showSetup() {
+        ui.setup.classList.remove('hidden');
+        ui.session.classList.add('hidden');
+    }
+
+    // Initialize new session
+    function startSession() {
+        const config = {
+            startBankroll: parseFloat(document.getElementById('startCap').value) || 0,
+            targetCapital: parseFloat(document.getElementById('targetCap').value) || 0,
+            targetWins: parseInt(document.getElementById('targetWins').value) || 1,
+            totalAttempts: parseInt(document.getElementById('totalAttempts').value) || 1,
+            odds: parseFloat(document.getElementById('oddsInput').value) || 2
+        };
+
+        const recoveryMultiplier = config.odds - 1;
+
+        if (recoveryMultiplier <= 0) {
+            alert("Decimal Odds must be greater than 1.00 for this recovery strategy.");
+            return;
+        }
+
+        if (config.targetCapital <= config.startBankroll) {
+            alert("Target Capital must be greater than Starting Bankroll.");
+            return;
+        }
+
+        const totalProfitNeeded = config.targetCapital - config.startBankroll;
+        const profitPerWinStage = totalProfitNeeded / config.targetWins;
+
+        // Initialize session object
+        session = {
+            config,
+            constants: {
+                profitPerWinStage,
+                recoveryMultiplier
+            },
+            runtime: {
+                currentBankroll: config.startBankroll,
+                winsAchieved: 0,
+                currentAttempt: 1,
+                stageAccumulatedLosses: 0,
+                currentRequiredStake: 0, // Calculated immediately below
+                isComplete: false,
+                finalStatus: null // 'win' or 'loss'
+            },
+            history: []
+        };
+
+        calculateCurrentStake();
+        saveState();
+        renderSession();
+    }
+
+    // Core logic: Calculate stake for current stage based on losses
+    function calculateCurrentStake() {
+        if (!session || session.runtime.isComplete) return;
+
+        const stageProfit = session.constants.profitPerWinStage;
+        const accLosses = session.runtime.stageAccumulatedLosses;
+        const multiplier = session.constants.recoveryMultiplier;
+
+        // Formula: Stake = (TargetProfit + Losses) / (Odds - 1)
+        let stake = (stageProfit + accLosses) / multiplier;
+        
+        // Round up slightly to nearest 0.01 to ensure profit target is met after pg fees
+        stake = Math.ceil(stake * 100) / 100;
+
+        session.runtime.currentRequiredStake = stake;
+    }
+
+    // --- WORKFLOW / OUTCOME HANDLING ---
+
+    // Define Loss: increments losses, sets next stake
+    function declareOutcome(status) {
+        if (!session || session.runtime.isComplete) return;
+
+        const currentStake = session.runtime.currentRequiredStake;
+        const attNb = session.runtime.currentAttempt;
+        const zone = document.getElementById('active-bet-zone');
+
+        if (status === 'loss') {
+            // Visual feedback
+            zone.classList.add('loss');
+            setTimeout(() => zone.classList.remove('loss'), 600);
+
+            // Update runtime
+            session.runtime.currentBankroll -= currentStake;
+            session.runtime.stageAccumulatedLosses += currentStake;
+            
+            // Add to history
+            addHistoryItem('loss', currentStake, AttribNetProfit(0, currentStake));
+            
+            checkSessionEndStates(); // check bust
+
+            if(!session.runtime.isComplete) {
+                session.runtime.currentAttempt++;
+                checkAttemptsExhausted();
+            }
+
+            if(!session.runtime.isComplete) {
+                calculateCurrentStake(); // Calc next recovery stake
+            }
+        }
+        
+        saveState();
+        renderSession();
+    }
+
+    // Define Win: resets stage losses, increments wins achieved
+    function processWin() {
+        if (!session || session.runtime.isComplete) return;
+
+        const currentStake = session.runtime.currentRequiredStake;
+        const odds = session.config.odds;
+        const zone = document.getElementById('active-bet-zone');
+
+        // Visual feedback
+        zone.classList.add('win');
+        setTimeout(() => zone.classList.remove('win'), 600);
+
+        const grossReturn = currentStake * odds;
+        const currentStageTotalCost = session.runtime.stageAccumulatedLosses + currentStake;
+        const netProfit = grossReturn - currentStageTotalCost;
+
+        // Update runtime
+        session.runtime.currentBankroll += (grossReturn - currentStake); // realized profit
+        session.runtime.winsAchieved++;
+        session.runtime.attemptNum++;
+        
+        // Reset stage losses for next win goal
+        const lossesRecovered = session.runtime.stageAccumulatedLosses;
+        session.runtime.stageAccumulatedLosses = 0;
+
+        addHistoryItem('win', currentStake, netProfit, lossesRecovered);
+
+        checkSessionEndStates(); // check target met
+
+        if(!session.runtime.isComplete) {
+            calculateCurrentStake(); // Calc base stake for next stage
+        }
+
+        saveState();
+        renderSession();
+    }
+
+    function AttribNetProfit(win, stake) {
+        if (win) return stake * (session.config.odds - 1);
+        return -stake;
+    }
+
+    // --- LOGIC CHECKS ---
+
+    function checkAttemptsExhausted() {
+        if (session.runtime.currentAttempt > session.config.totalAttempts) {
+            endSessionLogic('loss');
+        }
+    }
+
+    function checkSessionEndStates() {
+        // Win state: Target wins met
+        if (session.runtime.winsAchieved >= session.config.targetWins) {
+            endSessionLogic('win');
+            return;
+        }
+
+        // Loss state: Bankroll busted (cannot cover next calculated stake)
+        // Calculated before incrementing attempt number after a loss
+        if (session.runtime.currentBankroll <= 0) {
+            endSessionLogic('loss');
+        }
+    }
+
+    function endSessionLogic(status) {
+        session.runtime.isComplete = true;
+        session.runtime.finalStatus = status;
+        session.runtime.currentRequiredStake = 0;
+    }
+
+    // --- RENDERING FUNCTIONS ---
+
+    function renderSession() {
+        ui.setup.classList.add('hidden');
+        ui.session.classList.remove('hidden');
+
+        const run = session.runtime;
+        const conf = session.config;
+
+        // 1. Dashboard
+        ui.sBankroll.innerText = formatNaira(run.currentBankroll);
+        
+        const netProfit = run.currentBankroll - conf.startBankroll;
+        ui.sProfit.innerText = formatNaira(netProfit);
+        ui.sProfit.className = 'value ' + (netProfit >= 0 ? 'money-plus' : 'money-minus');
+
+        ui.sWins.innerText = `${run.winsAchieved} / ${conf.targetWins}`;
+        
+        // Clamp attempt display for UI if complete
+        const displayAtt = run.isComplete && run.finalStatus === 'loss' ? conf.totalAttempts : run.currentAttempt;
+        ui.sAttempt.innerText = `${displayAtt} / ${conf.totalAttempts}`;
+
+        // 2. Betting Zone / End States
+        if (!run.isComplete) {
+            ui.betZone.classList.remove('hidden');
+            ui.endWinZone.classList.add('hidden');
+            ui.endLossZone.classList.add('hidden');
+
+            ui.attNb.innerText = `#${run.currentAttempt}`;
+            ui.stake.innerText = formatNaira(run.currentRequiredStake);
+            ui.winTarget.innerText = `Win Clears ${formatNaira(run.stageAccumulatedLosses)} Losses + Adds Profit`;
+        } else {
+            ui.betZone.classList.add('hidden');
+            if (run.finalStatus === 'win') {
+                ui.endWinZone.classList.remove('hidden');
+                ui.endLossZone.classList.add('hidden');
+                ui.endWinMsg.innerHTML = `Final Capital: <strong>${formatNaira(run.currentBankroll)}</strong><br>Total Profit: <strong>${formatNaira(netProfit)}</strong>`;
+            } else {
+                ui.endWinZone.classList.add('hidden');
+                ui.endLossZone.classList.remove('hidden');
+            }
+        }
+
+        // 3. History
+        updateHistoryCounters();
+        // History list rendering happens when switching view or adding item
+    }
+
+    // Add item to state array
+    function addHistoryItem(status, stake, netProfit, lossesRecovered = 0) {
+        session.history.unshift({
+            attempt: session.runtime.currentAttempt,
+            type: status, // 'win' or 'loss'
+            stake: stake,
+            netProfit: netProfit,
+            recovered: lossesRecovered,
+            bankrollSnap: session.runtime.currentBankroll,
+            time: formatDateTime()
+        });
+    }
+
+    // Render HTML list from state array based on filter
+    let currentFilter = 'all';
+    function renderHistoryList() {
+        const list = session.history;
+        ui.histList.innerHTML = '';
+
+        const filteredList = list.filter(item => {
+            if (currentFilter === 'all') return true;
+            return item.type === currentFilter;
+        });
+
+        if (filteredList.length === 0) {
+            ui.histList.innerHTML = '<div class="empty-state">No matching logs found.</div>';
+            return;
+        }
+
+        filteredList.forEach(item => {
+            const div = document.createElement('div');
+            div.className = `history-item ${item.type === 'win' ? 'item-win' : 'item-loss'}`;
+            
+            const badge = item.type === 'win' ? 
+                `<span class="badge badge-win">WON</span>` : 
+                `<span class="badge badge-loss">LOST</span>`;
+
+            const recoveredText = item.type === 'win' && item.recovered > 0 ?
+                `<div style="color: #64748b; font-size: 0.7rem;">Losses Cleared: ${formatNaira(item.recovered)}</div>` : '';
+
+            div.innerHTML = `
+                <div class="hist-meta">
+                    <span class="hist-nb">Bet #${item.attempt}</span>
+                    <span class="hist-time">${item.time}</span>
+                    <div style="margin-top:4px;">${badge}</div>
+                </div>
+                <div></div>
+                <div class="hist-pnl">
+                    <div class="hist-stake">${formatNaira(item.stake)}</div>
+                    <div class="hist-profit">${item.type === 'win' ? '+' : ''}${formatNaira(item.netProfit)}</div>
+                    ${recoveredText}
+                </div>
+            `;
+            ui.histList.appendChild(div);
+        });
+    }
+
+    function updateHistoryCounters() {
+        const hist = session.history;
+        const wins = hist.filter(i => i.type === 'win').length;
+        const losses = hist.filter(i => i.type === 'loss').length;
+
+        ui.cAll.innerText = hist.length;
+        ui.cWins.innerText = wins;
+        ui.cLosses.innerText = losses;
+    }
+
+    // --- UI INTERACTION FUNCTIONS ---
+
+    function switchView(viewName) {
+        if (viewName === 'active') {
+            ui.vActive.classList.remove('hidden');
+            ui.vHistory.classList.add('hidden');
+            ui.tActive.classList.add('active');
+            ui.tHistory.classList.remove('active');
+        } else {
+            ui.vActive.classList.add('hidden');
+            ui.vHistory.classList.remove('hidden');
+            ui.tActive.classList.remove('active');
+            ui.tHistory.classList.add('active');
+            renderHistoryList(); // Render when view opens
+        }
+    }
+
+    function filterHistory(type, btnNode) {
+        currentFilter = type;
+        // Update button states
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btnNode.classList.add('active');
+        renderHistoryList();
+    }
+
+    function endSessionConfirm() {
+        if(session.runtime.isComplete) {
+            resetRound();
+            return;
+        }
+        if (confirm("Terminate active session? Unsaved progress will be lost. Summary data will remain until cleared.")) {
+            resetRound();
+        }
+    }
+
+    function resetRound() {
+        session = null;
+        saveState();
+        switchView('active'); // reset view state
+        currentFilter = 'all';
+        showSetup();
+    }
+
+    function clearHistoryConfirm() {
+        if (!session || session.history.length === 0) return;
+        if (confirm("Permanently clear history logs for this session? Stats will reset.")) {
+            session.history = [];
+            saveState();
+            renderSession();
+            renderHistoryList();
+        }
+    }
+
+    // --- STARTUP ---
+    window.onload = loadState;
+
 </script>
 
 </body>
